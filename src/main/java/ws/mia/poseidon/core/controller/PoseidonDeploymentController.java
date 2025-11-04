@@ -11,6 +11,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import ws.mia.phoenix.api.PhoenixClient;
+import ws.mia.phoenix.api.exception.PhoenixClientException;
+import ws.mia.phoenix.api.exception.PhoenixServerException;
 import ws.mia.phoenix.api.model.Route;
 import ws.mia.poseidon.api.model.PoseidonDeploymentPayload;
 import ws.mia.poseidon.core.docker.DockerPushService;
@@ -106,6 +108,9 @@ public class PoseidonDeploymentController {
 				log.info("Removed phoenix route {}", phoenixSource.get());
 			}
 
+			return ResponseEntity.noContent().build();
+		} catch (PhoenixClientException | PhoenixServerException e) {
+			log.warn("Successfully deployed with phoenix error", e);
 			return ResponseEntity.noContent().build();
 		} catch (Exception e) {
 			log.warn("Failed to deploy from /deploy endpoint", e);
