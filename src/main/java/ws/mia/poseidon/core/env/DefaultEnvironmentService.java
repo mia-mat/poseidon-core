@@ -15,7 +15,7 @@ public class DefaultEnvironmentService implements EnvironmentService{
 
 	@Override
 	public String getPhoenixAuthToken() {
-		return System.getenv("PHOENIX_URI"); // we can return this even if null since auth may be null
+		return System.getenv("PHOENIX_AUTH_TOKEN"); // we can return this even if null since auth may be null
 	}
 
 	@Override
