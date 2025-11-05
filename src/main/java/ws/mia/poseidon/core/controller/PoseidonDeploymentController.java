@@ -108,10 +108,10 @@ public class PoseidonDeploymentController {
 				log.info("Removed phoenix route {}", phoenixSource.get());
 			}
 
-			return ResponseEntity.noContent().build();
+			return ResponseEntity.ok().build();
 		} catch (PhoenixClientException | PhoenixServerException e) {
 			log.warn("Successfully deployed with phoenix error", e);
-			return ResponseEntity.noContent().build();
+			return ResponseEntity.ok().build();
 		} catch (Exception e) {
 			log.warn("Failed to deploy from /deploy endpoint", e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Deployment failed: " + e.getMessage());
