@@ -8,6 +8,7 @@ import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.api.model.Event;
 import com.github.dockerjava.api.model.EventType;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,7 +18,9 @@ import ws.mia.poseidon.api.model.PoseidonContainerEvent;
 import ws.mia.poseidon.core.ServerSideEventService;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +41,7 @@ public class DockerPullService {
 	private static final long containerCacheInterval = 1000*60; // ms
 
 	public DockerPullService(DockerClient dockerClient, ServerSideEventService serverSideEventService) {
+		this.containerCache = new ArrayList<>();
 		this.listening = false;
 		this.dockerClient = dockerClient;
 		this.serverSideEventService = serverSideEventService;
@@ -202,5 +206,18 @@ public class DockerPullService {
 	}
 
 
+	@PreDestroy
+	public void cleanup() {
+		try {
+			if (eventsCallback != null) {
+				eventsCallback.close();
+			}
+			if (dockerClient != null) {
+				dockerClient.close();
+			}
+		} catch (IOException e) {
+			log.error("Error during Docker service cleanup", e);
+		}
+	}
 
 }
