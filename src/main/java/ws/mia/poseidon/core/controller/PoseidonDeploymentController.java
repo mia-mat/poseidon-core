@@ -79,6 +79,10 @@ public class PoseidonDeploymentController {
 
 			dockerPushService.deployGHCRImage(payload, dockerInternalPort, dockerExternalPort);
 
+			if(phoenixSelf) {
+				return ResponseEntity.ok(":3");
+			}
+
 			// we only update phoenix routes if this routes externally, else we can delete the record since we're not routing
 			if (phoenixSource.isPresent() && dockerExternalPort.isPresent()) {
 				Route newRoute = new Route.Builder()
@@ -108,10 +112,10 @@ public class PoseidonDeploymentController {
 				log.info("Removed phoenix route {}", phoenixSource.get());
 			}
 
-			return ResponseEntity.ok().build();
+			return ResponseEntity.ok(":3");
 		} catch (PhoenixClientException | PhoenixServerException e) {
 			log.warn("Successfully deployed with phoenix error", e);
-			return ResponseEntity.ok().build();
+			return ResponseEntity.ok(":3");
 		} catch (Exception e) {
 			log.warn("Failed to deploy from /deploy endpoint", e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Deployment failed: " + e.getMessage());
