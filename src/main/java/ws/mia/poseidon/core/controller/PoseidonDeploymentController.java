@@ -84,7 +84,7 @@ public class PoseidonDeploymentController {
 				Route newRoute = new Route.Builder()
 						.source(phoenixSource.get())
 						.aliases(dockerPushService.getPhoenixAliasesLabel(labels))
-						.destination(dockerPushService.getDockerHost(true) + ":" + generateExternalPort(phoenixSelf))
+						.destination(dockerPushService.getDockerHost(true) + ":" + dockerExternalPort.get())
 						.build();
 
 				// we should really set a custom _repo field or something, but this works decently.
