@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class DockerPullService {
@@ -50,7 +51,8 @@ public class DockerPullService {
 	@PostConstruct
 	private void listenForDockerEvents() {
 		if (listening) {
-			throw new RuntimeException("Already listening!");
+			log.warn("Already listening to Docker events, skipping reconnection attempt");
+			return; // Don't throw, just return
 		}
 
 		listening = true;
@@ -143,7 +145,7 @@ public class DockerPullService {
 					.withShowAll(true)
 					.exec();
 
-			containerCache = containers.stream().map(this::poseidonFromDockerContainer).toList();
+			containerCache = containers.stream().map(this::poseidonFromDockerContainer).collect(Collectors.toList());
 			containersLastCachedTimestamp = System.currentTimeMillis();
 
 			return containerCache;
