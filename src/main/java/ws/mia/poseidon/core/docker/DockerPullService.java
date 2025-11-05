@@ -151,7 +151,7 @@ public class DockerPullService {
 			return containerCache;
 		} catch (Exception e) {
 			log.warn("Failed to retrieve Docker containers", e);
-			return List.of();
+			return new ArrayList<>();
 		}
 	}
 
