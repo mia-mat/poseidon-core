@@ -108,8 +108,10 @@ public class PoseidonDeploymentController {
 				}
 
 			} else {
-				phoenixClient.removeRoute(phoenixSource.orElseThrow());
-				log.info("Removed phoenix route {}", phoenixSource.get());
+				if(phoenixSource.isPresent()) {
+					phoenixClient.removeRoute(phoenixSource.orElseThrow());
+					log.info("Removed phoenix route {}", phoenixSource.get());
+				}
 			}
 
 			return ResponseEntity.ok(":3");
