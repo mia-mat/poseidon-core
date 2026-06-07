@@ -99,8 +99,6 @@ public class DockerPullService {
 		if (event.getType() != EventType.CONTAINER) return;
 		if (event.getAction() == null) return;
 
-		containerCache.clear();
-
 		String sseEventName;
 
 		switch (event.getAction()) {
@@ -123,16 +121,37 @@ public class DockerPullService {
 				return;
 		}
 
+		if ("deleted".equals(sseEventName)) {
+			// container is already gone from Docker by the time we'd re-fetch,
+			// so grab it from cache before clearing, or build a minimal stub.
+			Optional<PoseidonContainer> cached = containerCache.stream()
+					.filter(c -> c.getDockerId().startsWith(event.getId()))
+					.findFirst();
+
+			containerCache.clear();
+			containersLastCachedTimestamp = 0L;
+
+			PoseidonContainer container = cached.orElseGet(() -> {
+				PoseidonContainer stub = new PoseidonContainer();
+				stub.setDockerId(event.getId());
+				stub.setState(PoseidonContainer.State.DOWN);
+				stub.setNames(event.getActor() != null && event.getActor().getAttributes() != null
+						? List.of(event.getActor().getAttributes().getOrDefault("name", event.getId()))
+						: List.of(event.getId()));
+				return stub;
+			});
+			serverSideEventService.sendEvent(new PoseidonContainerEvent("deleted", container));
+			return;
+		}
+
 		// reset container cache because we have an update
+		containerCache.clear();
 		containersLastCachedTimestamp = 0L;
 
 		String fSseEventName = sseEventName;
-
-
 		getContainer(event.getId()).ifPresentOrElse(c -> {
 			serverSideEventService.sendEvent(new PoseidonContainerEvent(fSseEventName, c));
 		}, () -> log.warn("Received event for unknown docker container {}", event.getId()));
-
 	}
 
 	public List<PoseidonContainer> getAllContainers() {
