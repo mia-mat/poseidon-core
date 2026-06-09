@@ -51,10 +51,6 @@ public class PoseidonDeploymentController {
 		try {
 			byte[] body = request.getInputStream().readAllBytes();
 
-			System.out.println(new String(body, StandardCharsets.UTF_8));
-
-			if(true) return ResponseEntity.ok("beta poseidon");
-
 			// verify that our request is coming from a trusted source
 			if (!verifySignature(body, signature)) {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
@@ -70,7 +66,7 @@ public class PoseidonDeploymentController {
 				return ResponseEntity.badRequest().body("Missing 'image' field in payload");
 			}
 
-			if (payload.getRepository() == null || payload.getRepository().getName() == null || payload.getRepository().getName().isBlank()) {
+			if (payload.getRepository().isBlank()) { // TODO more robust validation on all fields.
 				return ResponseEntity.badRequest().body("Invalid repository name");
 			}
 
@@ -86,7 +82,7 @@ public class PoseidonDeploymentController {
 			dockerPushService.deployGHCRImage(payload, dockerInternalPort, dockerExternalPort);
 
 			if(phoenixSelf) {
-				return ResponseEntity.ok(":3");
+				return ResponseEntity.ok("phoenix success :)");
 			}
 
 			// we only update phoenix routes if this routes externally, else we can delete the record since we're not routing
@@ -120,7 +116,7 @@ public class PoseidonDeploymentController {
 				}
 			}
 
-			return ResponseEntity.ok(":3");
+			return ResponseEntity.ok("succcess :)");
 		} catch (PhoenixClientException | PhoenixServerException e) {
 			log.warn("Successfully deployed with phoenix error", e);
 			return ResponseEntity.ok(":3");
