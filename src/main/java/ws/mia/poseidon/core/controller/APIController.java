@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import ws.mia.poseidon.api.model.PoseidonContainer;
 import ws.mia.poseidon.core.ServerSideEventService;
-import ws.mia.poseidon.core.docker.DockerPullService;
+import ws.mia.poseidon.core.docker.DockerEventListenerService;
 
 import java.util.List;
 
@@ -17,12 +17,12 @@ public class APIController {
 
 	private final BuildProperties buildProperties;
 	private final ServerSideEventService serverSideEventService;
-	private final DockerPullService dockerPullService;
+	private final DockerEventListenerService dockerEventListenerService;
 
-	public APIController(BuildProperties buildProperties, ServerSideEventService serverSideEventService, DockerPullService dockerPullService) {
+	public APIController(BuildProperties buildProperties, ServerSideEventService serverSideEventService, DockerEventListenerService dockerEventListenerService) {
 		this.buildProperties = buildProperties;
 		this.serverSideEventService = serverSideEventService;
-		this.dockerPullService = dockerPullService;
+		this.dockerEventListenerService = dockerEventListenerService;
 	}
 
 	@GetMapping(value = "version", produces = "text/plain")
@@ -32,7 +32,7 @@ public class APIController {
 
 	@GetMapping("containers")
 	public List<PoseidonContainer> containers() {
-		return dockerPullService.getAllContainers();
+		return dockerEventListenerService.getAllContainers();
 	}
 
 	@GetMapping("containers/event-stream")

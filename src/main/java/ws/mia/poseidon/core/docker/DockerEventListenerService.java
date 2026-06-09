@@ -11,7 +11,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import ws.mia.poseidon.api.model.PoseidonContainer;
 import ws.mia.poseidon.api.model.PoseidonContainerEvent;
@@ -27,9 +26,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
-public class DockerPullService {
+public class DockerEventListenerService {
 
-	private static final Logger log = LoggerFactory.getLogger(DockerPullService.class);
+	private static final Logger log = LoggerFactory.getLogger(DockerEventListenerService.class);
 
 	private final DockerClient dockerClient;
 	private final ServerSideEventService serverSideEventService;
@@ -41,7 +40,7 @@ public class DockerPullService {
 	private volatile long containersLastCachedTimestamp = 0L;
 	private static final long containerCacheInterval = 1000*60; // ms
 
-	public DockerPullService(DockerClient dockerClient, ServerSideEventService serverSideEventService) {
+	public DockerEventListenerService(DockerClient dockerClient, ServerSideEventService serverSideEventService) {
 		this.containerCache = new ArrayList<>();
 		this.listening = false;
 		this.dockerClient = dockerClient;
