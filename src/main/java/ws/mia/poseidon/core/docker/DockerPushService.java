@@ -32,25 +32,25 @@ public class DockerPushService {
 		String internalPortStr = labels.get("internal-port");
 		if(internalPortStr != null) {
 			return Integer.valueOf(internalPortStr).describeConstable(); // if it's not an int, we just error out
-		} else {
-			return Optional.empty();
 		}
+
+		return Optional.empty();
 	}
 
 	public Optional<String> getPhoenixSourceLabel(final Map<String, String> labels) {
 		return Optional.ofNullable(labels.get("phoenix.source"));
 	}
 
-	public boolean getPhoenixSelfLabel(final Map<String, String> labels) {
+	public boolean isPhoenixSelf(final Map<String, String> labels) {
 		String pfoxSelfStr = labels.get("phoenix.self");
 		if(pfoxSelfStr != null) {
 			return Boolean.parseBoolean(pfoxSelfStr);
-		} else {
-			return false;
 		}
+
+		return false;
 	}
 
-	public List<String> getPhoenixAliasesLabel(final Map<String, String> labels) {
+	public List<String> getPhoenixAliases(final Map<String, String> labels) {
 		// aliases are stored under phoenix.alias, phoenix.alias.*,
 		// or as a space delimited list phoenix.aliases
 		List<String> aliases = new ArrayList<>();
@@ -90,7 +90,7 @@ public class DockerPushService {
 		log.info("Pulling new image {}", payload.getImage());
 		ensureImageExists(payload.getImage());
 
-		String containerName = payload.getRepository().getName().split("/")[1]; // getName is in form mia-mat/repo
+		String containerName = payload.getRepository().getName().split("/")[1]; // getName is in form user/repo
 
 		// stop and remove container if it exists
 		if (containerExists(containerName)) {

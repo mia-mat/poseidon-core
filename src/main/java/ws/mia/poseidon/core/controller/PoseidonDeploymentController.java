@@ -20,6 +20,7 @@ import ws.mia.poseidon.core.env.EnvironmentService;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,10 @@ public class PoseidonDeploymentController {
 		try {
 			byte[] body = request.getInputStream().readAllBytes();
 
+			System.out.println(new String(body, StandardCharsets.UTF_8));
+
+			if(true) return ResponseEntity.ok("beta poseidon");
+
 			// verify that our request is coming from a trusted source
 			if (!verifySignature(body, signature)) {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
@@ -58,6 +63,7 @@ public class PoseidonDeploymentController {
 			// we expect a JSON object, corresponding 1:1 to our DTO
 			ObjectMapper mapper = new ObjectMapper();
 			mapper.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, true);
+
 			PoseidonDeploymentPayload payload = mapper.readValue(body, PoseidonDeploymentPayload.class);
 
 			if (payload.getImage() == null || payload.getImage().isBlank()) {
@@ -71,7 +77,7 @@ public class PoseidonDeploymentController {
 			final Map<String, String> labels = dockerPushService.extractDockerfileLabels(payload.getImage());
 			Optional<Integer> dockerInternalPort = dockerPushService.getInternalPortLabel(labels);
 			Optional<String> phoenixSource = dockerPushService.getPhoenixSourceLabel(labels);
-			boolean phoenixSelf = dockerPushService.getPhoenixSelfLabel(labels);
+			boolean phoenixSelf = dockerPushService.isPhoenixSelf(labels);
 
 
 			// if we don't have an internal port, we don't have any need for an external port
@@ -87,7 +93,7 @@ public class PoseidonDeploymentController {
 			if (phoenixSource.isPresent() && dockerExternalPort.isPresent()) {
 				Route newRoute = new Route.Builder()
 						.source(phoenixSource.get())
-						.aliases(dockerPushService.getPhoenixAliasesLabel(labels))
+						.aliases(dockerPushService.getPhoenixAliases(labels))
 						.destination(dockerPushService.getDockerHost(true) + ":" + dockerExternalPort.get())
 						.build();
 
