@@ -135,6 +135,7 @@ public class DockerPushService {
 		labels.put("github.repositoryOwner", payload.getRepositoryOwner());
 		labels.put("github.repositoryName", payload.getRepositoryName());
 		labels.put("github.repositoryId", payload.getRepositoryId());
+		labels.put("github.branch", payload.getBranch());
 		labels.put("github.image", payload.getImage());
 		createCmd.withLabels(labels);
 
