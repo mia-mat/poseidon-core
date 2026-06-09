@@ -20,6 +20,7 @@ import ws.mia.poseidon.core.env.EnvironmentService;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Map;
 import java.util.Optional;
@@ -58,20 +59,21 @@ public class PoseidonDeploymentController {
 			// we expect a JSON object, corresponding 1:1 to our DTO
 			ObjectMapper mapper = new ObjectMapper();
 			mapper.configure(DeserializationFeature.FAIL_ON_MISSING_CREATOR_PROPERTIES, true);
+
 			PoseidonDeploymentPayload payload = mapper.readValue(body, PoseidonDeploymentPayload.class);
 
 			if (payload.getImage() == null || payload.getImage().isBlank()) {
 				return ResponseEntity.badRequest().body("Missing 'image' field in payload");
 			}
 
-			if (payload.getRepository() == null || payload.getRepository().getName() == null || payload.getRepository().getName().isBlank()) {
+			if (payload.getRepository().isBlank()) { // TODO more robust validation on all fields.
 				return ResponseEntity.badRequest().body("Invalid repository name");
 			}
 
 			final Map<String, String> labels = dockerPushService.extractDockerfileLabels(payload.getImage());
 			Optional<Integer> dockerInternalPort = dockerPushService.getInternalPortLabel(labels);
 			Optional<String> phoenixSource = dockerPushService.getPhoenixSourceLabel(labels);
-			boolean phoenixSelf = dockerPushService.getPhoenixSelfLabel(labels);
+			boolean phoenixSelf = dockerPushService.isPhoenixSelf(labels);
 
 
 			// if we don't have an internal port, we don't have any need for an external port
@@ -80,14 +82,14 @@ public class PoseidonDeploymentController {
 			dockerPushService.deployGHCRImage(payload, dockerInternalPort, dockerExternalPort);
 
 			if(phoenixSelf) {
-				return ResponseEntity.ok(":3");
+				return ResponseEntity.ok("phoenix success :)");
 			}
 
 			// we only update phoenix routes if this routes externally, else we can delete the record since we're not routing
 			if (phoenixSource.isPresent() && dockerExternalPort.isPresent()) {
 				Route newRoute = new Route.Builder()
 						.source(phoenixSource.get())
-						.aliases(dockerPushService.getPhoenixAliasesLabel(labels))
+						.aliases(dockerPushService.getPhoenixAliases(labels))
 						.destination(dockerPushService.getDockerHost(true) + ":" + dockerExternalPort.get())
 						.build();
 
@@ -114,7 +116,7 @@ public class PoseidonDeploymentController {
 				}
 			}
 
-			return ResponseEntity.ok(":3");
+			return ResponseEntity.ok("succcess :)");
 		} catch (PhoenixClientException | PhoenixServerException e) {
 			log.warn("Successfully deployed with phoenix error", e);
 			return ResponseEntity.ok(":3");

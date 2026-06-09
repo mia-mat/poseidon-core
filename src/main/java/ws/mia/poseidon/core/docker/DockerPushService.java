@@ -32,25 +32,25 @@ public class DockerPushService {
 		String internalPortStr = labels.get("internal-port");
 		if(internalPortStr != null) {
 			return Integer.valueOf(internalPortStr).describeConstable(); // if it's not an int, we just error out
-		} else {
-			return Optional.empty();
 		}
+
+		return Optional.empty();
 	}
 
 	public Optional<String> getPhoenixSourceLabel(final Map<String, String> labels) {
 		return Optional.ofNullable(labels.get("phoenix.source"));
 	}
 
-	public boolean getPhoenixSelfLabel(final Map<String, String> labels) {
+	public boolean isPhoenixSelf(final Map<String, String> labels) {
 		String pfoxSelfStr = labels.get("phoenix.self");
 		if(pfoxSelfStr != null) {
 			return Boolean.parseBoolean(pfoxSelfStr);
-		} else {
-			return false;
 		}
+
+		return false;
 	}
 
-	public List<String> getPhoenixAliasesLabel(final Map<String, String> labels) {
+	public List<String> getPhoenixAliases(final Map<String, String> labels) {
 		// aliases are stored under phoenix.alias, phoenix.alias.*,
 		// or as a space delimited list phoenix.aliases
 		List<String> aliases = new ArrayList<>();
@@ -85,12 +85,12 @@ public class DockerPushService {
 
 	public String deployGHCRImage(PoseidonDeploymentPayload payload, Optional<Integer> internalPort, Optional<Integer> externalPort) throws IOException {
 		// todo give a volume for persistent storage -> (.withVolumes)
-		log.info("Attempting to deploy {}", payload.getRepository().getName());
+		log.info("Attempting to deploy {}", payload.getRepository());
 
 		log.info("Pulling new image {}", payload.getImage());
 		ensureImageExists(payload.getImage());
 
-		String containerName = payload.getRepository().getName().split("/")[1]; // getName is in form mia-mat/repo
+		String containerName = payload.getRepositoryName();
 
 		// stop and remove container if it exists
 		if (containerExists(containerName)) {
@@ -122,7 +122,7 @@ public class DockerPushService {
 		File envFile = new File(environmentService.getSecretDirectory() + "/" + containerName + ".env");
 		if (envFile.exists()) {
 			List<String> envVars = parseEnvFile(envFile);
-			log.info("Found {} secret(s) for {}", envVars.size(), payload.getRepository().getName());
+			log.info("Found {} secret(s) for {}", envVars.size(), payload.getRepository());
 			createCmd.withEnv(envVars);
 		}
 
@@ -132,7 +132,10 @@ public class DockerPushService {
 			labels = new HashMap<>();
 		} else labels = new HashMap<>(labels); // make modifiable
 
-		labels.put("github.repository", payload.getRepository().getName());
+		labels.put("github.repositoryOwner", payload.getRepositoryOwner());
+		labels.put("github.repositoryName", payload.getRepositoryName());
+		labels.put("github.repositoryId", payload.getRepositoryId());
+		labels.put("github.branch", payload.getBranch());
 		labels.put("github.image", payload.getImage());
 		createCmd.withLabels(labels);
 
@@ -140,7 +143,7 @@ public class DockerPushService {
 		String containerId = createCmd.exec().getId();
 		dockerClient.startContainerCmd(containerId).exec();
 
-		log.info("Successfully deployed container {} for {}", containerName, payload.getRepository().getName());
+		log.info("Successfully deployed container {} for {}", containerName, payload.getRepositoryUrl());
 		return containerId;
 	}
 
