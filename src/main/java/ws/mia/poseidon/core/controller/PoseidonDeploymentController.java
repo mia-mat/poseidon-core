@@ -10,48 +10,36 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
-import ws.mia.phoenix.api.PhoenixClient;
 import ws.mia.phoenix.api.exception.PhoenixClientException;
 import ws.mia.phoenix.api.exception.PhoenixServerException;
-import ws.mia.phoenix.api.model.Route;
 import ws.mia.poseidon.api.model.PoseidonDeploymentPayload;
-import ws.mia.poseidon.core.docker.DockerPushService;
+import ws.mia.poseidon.core.PoseidonDeploymentService;
 import ws.mia.poseidon.core.env.EnvironmentService;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Main CI/CD controller
- */
 @Controller
 public class PoseidonDeploymentController {
 
 
 	private static final Logger log = LoggerFactory.getLogger(PoseidonDeploymentController.class);
 	private final EnvironmentService environmentService;
-	private final PhoenixClient phoenixClient;
-	private final DockerPushService dockerPushService;
+	private final PoseidonDeploymentService poseidonDeploymentService;
 
-	public PoseidonDeploymentController(EnvironmentService environmentService, PhoenixClient phoenixClient, DockerPushService dockerPushService) {
+	public PoseidonDeploymentController(EnvironmentService environmentService, PoseidonDeploymentService poseidonDeploymentService) {
 		this.environmentService = environmentService;
-		this.phoenixClient = phoenixClient;
-		this.dockerPushService = dockerPushService;
+		this.poseidonDeploymentService = poseidonDeploymentService;
 	}
 
 	// for GitHub to POST Docker image updates to
 	@PostMapping("/deploy")
-	public ResponseEntity<String> update(@RequestHeader("X-Hub-Signature-256") String signature,
-										 HttpServletRequest request) {
+	public ResponseEntity<Object> deploy(@RequestHeader("X-Hub-Signature-256") String signature, HttpServletRequest request) {
 		try {
 			byte[] body = request.getInputStream().readAllBytes();
 
-			// verify that our request is coming from a trusted source
+			// verify that the deployment is signed with poseidon's secret
 			if (!verifySignature(body, signature)) {
 				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid signature");
 			}
@@ -62,64 +50,16 @@ public class PoseidonDeploymentController {
 
 			PoseidonDeploymentPayload payload = mapper.readValue(body, PoseidonDeploymentPayload.class);
 
-			if (payload.getImage() == null || payload.getImage().isBlank()) {
-				return ResponseEntity.badRequest().body("Missing 'image' field in payload");
+			if (!validateDeploymentPayload(payload)) {
+				return ResponseEntity.badRequest().body(payload);
 			}
 
-			if (payload.getRepository().isBlank()) { // TODO more robust validation on all fields.
-				return ResponseEntity.badRequest().body("Invalid repository name");
-			}
+			poseidonDeploymentService.deploy(payload);
+			return ResponseEntity.ok("Successfully Deployed :)");
 
-			final Map<String, String> labels = dockerPushService.extractDockerfileLabels(payload.getImage());
-			Optional<Integer> dockerInternalPort = dockerPushService.getInternalPortLabel(labels);
-			Optional<String> phoenixSource = dockerPushService.getPhoenixSourceLabel(labels);
-			boolean phoenixSelf = dockerPushService.isPhoenixSelf(labels);
-
-
-			// if we don't have an internal port, we don't have any need for an external port
-			Optional<Integer> dockerExternalPort = Optional.ofNullable(dockerInternalPort.isPresent() ? generateExternalPort(phoenixSelf) : null);
-
-			dockerPushService.deployGHCRImage(payload, dockerInternalPort, dockerExternalPort);
-
-			if(phoenixSelf) {
-				return ResponseEntity.ok("phoenix success :)");
-			}
-
-			// we only update phoenix routes if this routes externally, else we can delete the record since we're not routing
-			if (phoenixSource.isPresent() && dockerExternalPort.isPresent()) {
-				Route newRoute = new Route.Builder()
-						.source(phoenixSource.get())
-						.aliases(dockerPushService.getPhoenixAliases(labels))
-						.destination(dockerPushService.getDockerHost(true) + ":" + dockerExternalPort.get())
-						.build();
-
-				// we should really set a custom _repo field or something, but this works decently.
-				if (phoenixClient.routeExists(phoenixSource.get())) {
-					// modify route
-					phoenixClient.modifyRoute(phoenixSource.get(),
-							new Route.Builder().from(phoenixClient.getRoute(phoenixSource.get()).orElseThrow())
-									.aliases(newRoute.getAliases())
-									.destination(newRoute.getDestination()).build()
-					);
-
-					log.info("Modified phoenix route {}", phoenixSource.get());
-				} else {
-					// create new route
-					phoenixClient.pushRoute(newRoute);
-					log.info("Created phoenix route {}", phoenixSource.get());
-				}
-
-			} else {
-				if(phoenixSource.isPresent()) {
-					phoenixClient.removeRoute(phoenixSource.orElseThrow());
-					log.info("Removed phoenix route {}", phoenixSource.get());
-				}
-			}
-
-			return ResponseEntity.ok("succcess :)");
 		} catch (PhoenixClientException | PhoenixServerException e) {
-			log.warn("Successfully deployed with phoenix error", e);
-			return ResponseEntity.ok(":3");
+			log.warn("Deployed with Phoenix error", e);
+			return ResponseEntity.ok("Deployed with Phoenix Error");
 		} catch (Exception e) {
 			log.warn("Failed to deploy from /deploy endpoint", e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Deployment failed: " + e.getMessage());
@@ -136,7 +76,6 @@ public class PoseidonDeploymentController {
 		byte[] digest = hmac.doFinal(payload);
 		String actualSig = bytesToHex(digest);
 		return MessageDigest.isEqual(actualSig.getBytes(), sentSig.getBytes());
-
 	}
 
 	private String bytesToHex(byte[] bytes) {
@@ -145,18 +84,22 @@ public class PoseidonDeploymentController {
 		return sb.toString();
 	}
 
-	private int generateExternalPort(boolean phoenixSelf) {
-		if (phoenixSelf)
-			return environmentService.getPhoenixPort(); // we keep a certain port reserved for phoenix so we dont need to edit our reverse proxy (caddy) config
-
-		// get a safe port
-		int port = ThreadLocalRandom.current().nextInt(20000, 40000);
-		if (phoenixClient.getRoutes().stream().anyMatch(route -> route.getDestination().equals(dockerPushService.getDockerHost(true) + ":" + port))) {
-			// conflict
-			return generateExternalPort(false);
+	private boolean validateDeploymentPayload(PoseidonDeploymentPayload payload) {
+		if (payload.getImage() == null || payload.getImage().isBlank()) {
+			return false;
 		}
 
-		return port;
+		if (payload.getRepository().isBlank()
+				|| payload.getRef().isBlank()
+				|| payload.getBranch().isBlank()
+				|| payload.getRepositoryId().isBlank()
+				|| payload.getRepositoryName().isBlank()
+				|| payload.getRepositoryUrl().isBlank()) {
+			return false;
+		}
+
+
+		return true;
 	}
 
 }

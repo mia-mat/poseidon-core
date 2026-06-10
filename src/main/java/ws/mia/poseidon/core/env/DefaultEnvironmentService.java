@@ -8,9 +8,7 @@ public class DefaultEnvironmentService implements EnvironmentService{
 
 	@Override
 	public String getPhoenixUrl() {
-		String ret = System.getenv("PHOENIX_URL");
-		if(ret == null) throw new IllegalStateException("PHOENIX_URL environment variable not set!");
-		return ret;
+		return System.getenv("PHOENIX_URL");
 	}
 
 	@Override
