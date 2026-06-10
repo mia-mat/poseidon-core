@@ -51,15 +51,16 @@ See [Dockerfile Labels](#dockerfile-labels) for all available labels.
 | `DEPLOY_WEBHOOK_SECRET` | Yes      | Shared secret for verifying GitHub webhook signatures                 |
 | `GHCR_USERNAME`         | Yes      | GitHub username for authenticating with GHCR                          |
 | `GHCR_TOKEN`            | Yes      | GitHub token (PAT or Actions token) for pulling images                |
-| `PHOENIX_URL`           | Yes      | Base URL of Phoenix instance                                          |
+| `PHOENIX_URL`           | No       | Base URL of Phoenix instance                                          |
 | `PHOENIX_AUTH_TOKEN`    | No       | Auth token for Phoenix, if configured                                 |
 | `SECRETS_DIR`           | No       | Directory containing per-container `.env` files (default: `/secrets`) |
 
 
 ## Dockerfile Labels
-Poseidon is closely integrated with a dynamic reverse proxy, [Phoenix](https://gh.mia.ws/phoenix-core), allowing for automatic configuration of routing by Phoenix via Poseidon.
 
-Dockerfile labels may be specified to configure deployment behaviour, and to pass onto Phoenix to update its route store:
+Dockerfile labels may be specified to configure deployment behaviour, as well as optionally integrate with [Phoenix](https://gh.mia.ws/phoenix-core), a dynamic reverse proxy.
+
+The labels below are used to configure deployment behaviour, although any specified Dockerfile labels will also be forwarded as Docker container labels, allowing for access via Poseidon's API.
 
 | Label                                                 | Description                                                                        |
 |-------------------------------------------------------|------------------------------------------------------------------------------------|
