@@ -91,6 +91,7 @@ Model classes and a handy Java API client for Poseidon can be found at [poseidon
 
 
 ## REST API
+By default, Poseidon listens on port `7000`. This needs to be forwarded for GitHub to access its deployment endpoints. 
 
 | Endpoint                       | Method | Description                                   |
 |--------------------------------|--------|-----------------------------------------------|
