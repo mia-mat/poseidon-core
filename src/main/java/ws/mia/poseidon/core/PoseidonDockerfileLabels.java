@@ -5,6 +5,7 @@ import jakarta.annotation.Nullable;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -114,14 +115,15 @@ public class PoseidonDockerfileLabels {
 		// for comma-separated phoenix.aliases
 		Function<String, Set<String>> separateAliases = (aliasesStr) ->
 				Arrays.stream(aliasesStr.split(","))
-						.filter(String::isBlank)
+						.filter(Predicate.not(String::isBlank))
 						.map(String::trim).collect(Collectors.toSet());
 
 		BiConsumer<String, String> putAlias = (branch, alias) -> {
 			if (alias.isBlank()) return;
-			Set<String> newSet = aliases.getOrDefault(branch.trim(), new HashSet<>());
+			branch = branch != null ? branch.trim() : null;
+			Set<String> newSet = aliases.getOrDefault(branch, new HashSet<>());
 			newSet.add(alias);
-			aliases.put(branch.trim(), newSet);
+			aliases.put(branch, newSet);
 		};
 
 		// fallback
