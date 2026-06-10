@@ -247,4 +247,66 @@ class PoseidonDockerfileLabelsTest {
 		assertEquals(Set.of("a.example.com", "b.example.com", "c.example.com"),
 				result.getPhoenixAliases("main"));
 	}
+
+	@Test
+	void ignoresDuplicateSingularAndPluralAliasLabels() {
+		var labels = Map.of(
+				"internal-port", "8080",
+				"phoenix.alias.main", "a.example.com",
+				"phoenix.aliases.main", "a.example.com, b.example.com",
+				"phoenix.source.main", "main.example.com"
+		);
+		var result = PoseidonDockerfileLabels.fromLabelMap(labels);
+		assertEquals(Set.of("a.example.com", "b.example.com"),
+				result.getPhoenixAliases("main"));
+	}
+
+	@Test
+	void parsesSpaceSeparatedAliases() {
+		var labels = Map.of(
+				"internal-port", "8080",
+				"phoenix.aliases.main", "a.example.com b.example.com c.example.com",
+				"phoenix.source.main", "main.example.com"
+		);
+		var result = PoseidonDockerfileLabels.fromLabelMap(labels);
+		assertEquals(Set.of("a.example.com", "b.example.com", "c.example.com"),
+				result.getPhoenixAliases("main"));
+	}
+
+	@Test
+	void parsesSpaceSeparatedFallbackAliases() {
+		var labels = Map.of(
+				"internal-port", "8080",
+				"phoenix.aliases", "a.example.com b.example.com",
+				"phoenix.source", "main.example.com"
+		);
+		var result = PoseidonDockerfileLabels.fromLabelMap(labels);
+		assertEquals(Set.of("a.example.com", "b.example.com"),
+				result.getPhoenixAliases("anybranch"));
+	}
+
+	@Test
+	void spaceSeparatedAliasesIgnoreExtraWhitespace() {
+		var labels = Map.of(
+				"internal-port", "8080",
+				"phoenix.aliases.main", "a.example.com   b.example.com",
+				"phoenix.source.main", "main.example.com"
+		);
+		var result = PoseidonDockerfileLabels.fromLabelMap(labels);
+		assertEquals(Set.of("a.example.com", "b.example.com"),
+				result.getPhoenixAliases("main"));
+	}
+
+	@Test
+	void parsesMixedCommaAndSpaceSeparatedAliases() {
+		var labels = Map.of(
+				"internal-port", "8080",
+				"phoenix.aliases.main", "a.example.com b.example.com,c.example.com",
+				"phoenix.source.main", "main.example.com"
+		);
+		var result = PoseidonDockerfileLabels.fromLabelMap(labels);
+		assertEquals(Set.of("a.example.com", "b.example.com", "c.example.com"),
+				result.getPhoenixAliases("main"));
+	}
+
 }

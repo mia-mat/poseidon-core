@@ -109,14 +109,14 @@ public class PoseidonDockerfileLabels {
 		return retBranchSources;
 	}
 
-	private static Map<String, Set<String>> fetchAliases(Map<String, String> labels) {
+	private static Map<String, Set<String>> fetchAliases(Map<String, String> labels) { // TODO space-separated case
 		Map<String, Set<String>> aliases = new HashMap<>();
 
-		// for comma-separated phoenix.aliases
+		// for comma-separated and space-separated phoenix.aliases
 		Function<String, Set<String>> separateAliases = (aliasesStr) ->
-				Arrays.stream(aliasesStr.split(","))
+				Arrays.stream(aliasesStr.split("[,\\s]+"))
 						.filter(Predicate.not(String::isBlank))
-						.map(String::trim).collect(Collectors.toSet());
+						.collect(Collectors.toSet());
 
 		BiConsumer<String, String> putAlias = (branch, alias) -> {
 			if (alias.isBlank()) return;
