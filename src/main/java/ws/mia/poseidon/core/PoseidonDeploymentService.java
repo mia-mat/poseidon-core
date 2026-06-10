@@ -28,13 +28,13 @@ public class PoseidonDeploymentService {
 	private static final Logger log = LoggerFactory.getLogger(PoseidonDeploymentService.class);
 	private final DockerService dockerService;
 	private final EnvironmentService environmentService;
-	private final PhoenixClient phoenixClient;
+	private final Optional<PhoenixClient> phoenixClient;
 	private final ObjectMapper objectMapper;
 
 	public PoseidonDeploymentService(DockerService dockerService, @Qualifier("defaultEnvironmentService") EnvironmentService environmentService, PhoenixClient phoenixClient, ObjectMapper objectMapper) {
 		this.dockerService = dockerService;
 		this.environmentService = environmentService;
-		this.phoenixClient = phoenixClient;
+		this.phoenixClient = Optional.ofNullable(phoenixClient);
 		this.objectMapper = objectMapper;
 	}
 
@@ -42,7 +42,7 @@ public class PoseidonDeploymentService {
 	 * Attempts to deploy a Poseidon Payload.
 	 * If successful, returns true.
 	 */
-	public boolean deploy(PoseidonDeploymentPayload payload) {
+	public void deploy(PoseidonDeploymentPayload payload) {
 		log.info("Attempting to deploy {}", payload.getRepository() + ":" + payload.getBranch());
 
 		PoseidonDockerfileLabels dockerfileLabels = PoseidonDockerfileLabels.fromLabelMap(dockerService.fetchLabels(payload.getImage()));
@@ -69,19 +69,20 @@ public class PoseidonDeploymentService {
 		dockerService.deployContainer(payload.getImage(), containerName, boundPorts, secrets, injectedLabels);
 
 		if (dockerfileLabels.isPhoenixInstance()) {
-			return true;
+			return;
 		}
 
 		updatePhoenixRoute(dockerfileLabels.getPhoenixSource(payload.getBranch()),
 				dockerfileLabels.getPhoenixAliases(payload.getBranch()).stream().toList(),
 				externalPort);
-		return true;
 	}
 
 	private void updatePhoenixRoute(Optional<String> phoenixSource, List<String> aliases, Optional<Integer> externalPort) {
+		if (phoenixClient.isEmpty()) return;
+
 		if (externalPort.isEmpty() || phoenixSource.isEmpty()) {
 			phoenixSource.ifPresent(source -> {
-				phoenixClient.removeRoute(source);
+				phoenixClient.get().removeRoute(source);
 				log.info("Removed phoenix route {}", source);
 			});
 			return;
@@ -93,14 +94,14 @@ public class PoseidonDeploymentService {
 				.destination(dockerService.getDockerHost(true) + ":" + externalPort.get())
 				.build();
 
-		if (!phoenixClient.routeExists(phoenixSource.get())) {
-			phoenixClient.pushRoute(newRoute);
+		if (!phoenixClient.get().routeExists(phoenixSource.get())) {
+			phoenixClient.get().pushRoute(newRoute);
 			log.info("Created phoenix route {}", phoenixSource.get());
 			return;
 		}
 
-		phoenixClient.modifyRoute(phoenixSource.get(),
-				new Route.Builder().from(phoenixClient.getRoute(phoenixSource.get()).orElseThrow())
+		phoenixClient.get().modifyRoute(phoenixSource.get(),
+				new Route.Builder().from(phoenixClient.get().getRoute(phoenixSource.get()).orElseThrow())
 						.aliases(newRoute.getAliases())
 						.destination(newRoute.getDestination()).build()
 		);
@@ -127,7 +128,9 @@ public class PoseidonDeploymentService {
 		}
 
 		int port = ThreadLocalRandom.current().nextInt(20000, 40000);
-		if (phoenixClient.getRoutes().stream().anyMatch(route -> route.getDestination().equals(dockerService.getDockerHost(true) + ":" + port))) {
+		if (phoenixClient.isEmpty()) return port;
+
+		if (phoenixClient.get().getRoutes().stream().anyMatch(route -> route.getDestination().equals(dockerService.getDockerHost(true) + ":" + port))) {
 			return generateExternalPort(false);
 		}
 

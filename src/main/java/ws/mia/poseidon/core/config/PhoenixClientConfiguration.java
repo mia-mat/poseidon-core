@@ -11,7 +11,9 @@ public class PhoenixClientConfiguration {
 
 	@Bean
 	public PhoenixClient phoenixClient(EnvironmentService environmentService) {
-		return new PhoenixHttpClient(environmentService.getPhoenixUrl(), environmentService.getPhoenixAuthToken());
+		String url = environmentService.getPhoenixUrl();
+		if (url == null) return null;
+		return new PhoenixHttpClient(url, environmentService.getPhoenixAuthToken());
 	}
 
 }
