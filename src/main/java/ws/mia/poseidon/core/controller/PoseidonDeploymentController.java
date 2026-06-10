@@ -10,25 +10,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
-import ws.mia.phoenix.api.PhoenixClient;
 import ws.mia.phoenix.api.exception.PhoenixClientException;
 import ws.mia.phoenix.api.exception.PhoenixServerException;
-import ws.mia.phoenix.api.model.Route;
 import ws.mia.poseidon.api.model.PoseidonDeploymentPayload;
 import ws.mia.poseidon.core.PoseidonDeploymentService;
-import ws.mia.poseidon.core.docker.DockerService;
 import ws.mia.poseidon.core.env.EnvironmentService;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Main CI/CD controller
- */
 @Controller
 public class PoseidonDeploymentController {
 
@@ -44,8 +35,7 @@ public class PoseidonDeploymentController {
 
 	// for GitHub to POST Docker image updates to
 	@PostMapping("/deploy")
-	public ResponseEntity<Object> deploy(@RequestHeader("X-Hub-Signature-256") String signature,
-										 HttpServletRequest request) {
+	public ResponseEntity<Object> deploy(@RequestHeader("X-Hub-Signature-256") String signature, HttpServletRequest request) {
 		try {
 			byte[] body = request.getInputStream().readAllBytes();
 
@@ -60,7 +50,7 @@ public class PoseidonDeploymentController {
 
 			PoseidonDeploymentPayload payload = mapper.readValue(body, PoseidonDeploymentPayload.class);
 
-			if(!validateDeploymentPayload(payload)) {
+			if (!validateDeploymentPayload(payload)) {
 				return ResponseEntity.badRequest().body(payload);
 			}
 
@@ -100,11 +90,14 @@ public class PoseidonDeploymentController {
 		}
 
 		if (payload.getRepository().isBlank()
-		||  payload.getRef().isBlank()
-		||  payload.getBranch().isBlank()
-		||  payload.getRepositoryId().isBlank()
-		||  payload.getRepositoryName().isBlank()
-		||  payload.getRepositoryUrl().isBlank()) return false;
+				|| payload.getRef().isBlank()
+				|| payload.getBranch().isBlank()
+				|| payload.getRepositoryId().isBlank()
+				|| payload.getRepositoryName().isBlank()
+				|| payload.getRepositoryUrl().isBlank()) {
+			return false;
+		}
+
 
 		return true;
 	}

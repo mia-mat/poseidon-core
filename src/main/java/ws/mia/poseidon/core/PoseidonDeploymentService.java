@@ -15,7 +15,10 @@ import ws.mia.poseidon.core.env.EnvironmentService;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
@@ -46,11 +49,10 @@ public class PoseidonDeploymentService {
 
 		String containerName = payload.getRepositoryName() + "_" + payload.getBranch();
 
-
 		Optional<Integer> externalPort = Optional.empty();
 		Map<Integer, Integer> boundPorts = new HashMap<>();
 
-		if(dockerfileLabels.getInternalPort().isPresent()) {
+		if (dockerfileLabels.getInternalPort().isPresent()) {
 			externalPort = Optional.of(generateExternalPort(dockerfileLabels.isPhoenixInstance()));
 			boundPorts.put(dockerfileLabels.getInternalPort().get(), externalPort.get());
 		}
@@ -71,13 +73,13 @@ public class PoseidonDeploymentService {
 		}
 
 		updatePhoenixRoute(dockerfileLabels.getPhoenixSource(payload.getBranch()),
-				           dockerfileLabels.getPhoenixAliases(payload.getBranch()).stream().toList(),
-						   externalPort);
+				dockerfileLabels.getPhoenixAliases(payload.getBranch()).stream().toList(),
+				externalPort);
 		return true;
 	}
 
 	private void updatePhoenixRoute(Optional<String> phoenixSource, List<String> aliases, Optional<Integer> externalPort) {
-		if(externalPort.isEmpty() || phoenixSource.isEmpty()) {
+		if (externalPort.isEmpty() || phoenixSource.isEmpty()) {
 			phoenixSource.ifPresent(source -> {
 				phoenixClient.removeRoute(source);
 				log.info("Removed phoenix route {}", source);
@@ -91,7 +93,7 @@ public class PoseidonDeploymentService {
 				.destination(dockerService.getDockerHost(true) + ":" + externalPort.get())
 				.build();
 
-		if(!phoenixClient.routeExists(phoenixSource.get())) {
+		if (!phoenixClient.routeExists(phoenixSource.get())) {
 			phoenixClient.pushRoute(newRoute);
 			log.info("Created phoenix route {}", phoenixSource.get());
 			return;
@@ -107,7 +109,8 @@ public class PoseidonDeploymentService {
 	}
 
 	private Map<String, String> getDeploymentLabels(PoseidonDeploymentPayload payload) {
-		Map<String, Object> raw = objectMapper.convertValue(payload, new TypeReference<Map<String, Object>>() {});
+		Map<String, Object> raw = objectMapper.convertValue(payload, new TypeReference<Map<String, Object>>() {
+		});
 
 		return raw.entrySet().stream()
 				.filter(e -> e.getValue() != null)

@@ -59,8 +59,8 @@ public class PoseidonDockerfileLabels {
 
 		// if an alias for a branch exists, the branch must specify its source.
 		aliases.keySet().forEach(aliasBranch -> {
-			if(!sources.containsKey(aliasBranch)) {
-				if(aliasBranch != null) {
+			if (!sources.containsKey(aliasBranch)) {
+				if (aliasBranch != null) {
 					throw new IllegalArgumentException("Found aliases for branch '%s' without a corresponding source".formatted(aliasBranch));
 				}
 				throw new IllegalArgumentException("Found fallback aliases without fallback source");
@@ -171,10 +171,10 @@ public class PoseidonDockerfileLabels {
 
 	public Set<String> getPhoenixAliases(String branch) {
 		Set<String> branchAliases = phoenixAliases.get(branch);
-		if(branchAliases != null) return branchAliases;
+		if (branchAliases != null) return branchAliases;
 
 		Set<String> fallbackAliases = phoenixAliases.get(null);
-		if(fallbackAliases != null) return fallbackAliases;
+		if (fallbackAliases != null) return fallbackAliases;
 
 		return Set.of();
 	}

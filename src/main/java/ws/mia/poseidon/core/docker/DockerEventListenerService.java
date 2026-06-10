@@ -38,7 +38,7 @@ public class DockerEventListenerService {
 
 	private List<PoseidonContainer> containerCache;
 	private volatile long containersLastCachedTimestamp = 0L;
-	private static final long containerCacheInterval = 1000*60; // ms
+	private static final long containerCacheInterval = 1000 * 60; // ms
 
 	public DockerEventListenerService(DockerClient dockerClient, ServerSideEventService serverSideEventService) {
 		this.containerCache = new ArrayList<>();
@@ -154,7 +154,7 @@ public class DockerEventListenerService {
 	}
 
 	public List<PoseidonContainer> getAllContainers() {
-		if(containersLastCachedTimestamp > System.currentTimeMillis()-containerCacheInterval) {
+		if (containersLastCachedTimestamp > System.currentTimeMillis() - containerCacheInterval) {
 			return containerCache;
 		}
 
@@ -215,7 +215,7 @@ public class DockerEventListenerService {
 		ret.setLabels(dockerContainer.getLabels());
 
 		ret.setNames(Arrays.stream(dockerContainer.getNames()).map(name -> name.substring(1)).toList()); // docker prefixes container names with /, remove the /
-		if(dockerContainer.getPorts().length > 0 && dockerContainer.getPorts()[0].getPublicPort() != null) {
+		if (dockerContainer.getPorts().length > 0 && dockerContainer.getPorts()[0].getPublicPort() != null) {
 			ret.setExternalPort(dockerContainer.getPorts()[0].getPublicPort());
 		}
 
