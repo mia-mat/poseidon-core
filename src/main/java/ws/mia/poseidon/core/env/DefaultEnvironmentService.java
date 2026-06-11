@@ -7,6 +7,11 @@ public class DefaultEnvironmentService implements EnvironmentService{
 
 
 	@Override
+	public String getPoseidonAPIToken() {
+		return System.getenv("POSEIDON_API_TOKEN");
+	}
+
+	@Override
 	public String getPhoenixUrl() {
 		return System.getenv("PHOENIX_URL");
 	}

@@ -46,14 +46,15 @@ See [Dockerfile Labels](#dockerfile-labels) for all available labels.
 
 ## Environment Variables
 
-| Variable                | Required | Description                                                           |
-|-------------------------|----------|-----------------------------------------------------------------------|
-| `DEPLOY_WEBHOOK_SECRET` | Yes      | Shared secret for verifying GitHub webhook signatures                 |
-| `GHCR_USERNAME`         | Yes      | GitHub username for authenticating with GHCR                          |
-| `GHCR_TOKEN`            | Yes      | GitHub token (PAT or Actions token) for pulling images                |
-| `PHOENIX_URL`           | No       | Base URL of Phoenix instance                                          |
-| `PHOENIX_AUTH_TOKEN`    | No       | Auth token for Phoenix, if configured                                 |
-| `SECRETS_DIR`           | No       | Directory containing per-container `.env` files (default: `/secrets`) |
+| Variable                | Required | Description                                                                |
+|-------------------------|----------|----------------------------------------------------------------------------|
+| `DEPLOY_WEBHOOK_SECRET` | Yes      | Shared secret for verifying GitHub webhook signatures                      |
+| `GHCR_USERNAME`         | Yes      | GitHub username for authenticating with GHCR                               |
+| `GHCR_TOKEN`            | Yes      | GitHub token (PAT or Actions token) for pulling images                     |
+| `POSEIDON_API_TOKEN`    | No       | Bearer token for the management API. If unset, the API is unauthenticated. |
+| `PHOENIX_URL`           | No       | Base URL of Phoenix instance                                               |
+| `PHOENIX_AUTH_TOKEN`    | No       | Auth token for Phoenix, if configured                                      |
+| `SECRETS_DIR`           | No       | Directory containing per-container `.env` files (default: `/secrets`)      |
 
 
 ## Dockerfile Labels
@@ -91,7 +92,8 @@ Model classes and a handy Java API client for Poseidon can be found at [poseidon
 
 
 ## REST API
-By default, Poseidon listens on port `7000`. This needs to be forwarded for GitHub to access its deployment endpoints. 
+By default, Poseidon listens on port `7000`. This needs to be forwarded for GitHub to access its deployment endpoints.  
+All `/api/` endpoints require a `Bearer` token if `POSEIDON_API_TOKEN` is set.
 
 | Endpoint                       | Method | Description                                   |
 |--------------------------------|--------|-----------------------------------------------|

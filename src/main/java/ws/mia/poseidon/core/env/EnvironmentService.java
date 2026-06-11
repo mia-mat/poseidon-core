@@ -6,6 +6,10 @@ import org.springframework.stereotype.Service;
 @Service
 public interface EnvironmentService {
 
+	@Nullable
+	String getPoseidonAPIToken();
+
+	@Nullable
 	String getPhoenixUrl();
 
 	@Nullable
@@ -20,5 +24,7 @@ public interface EnvironmentService {
 	String getSecretDirectory();
 
 	int getPhoenixPort();
+
+
 
 }
